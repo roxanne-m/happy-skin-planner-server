@@ -1,12 +1,12 @@
 'use strict';
 
-const path = require('path');
+const path = require('path'); //creates proper string representing path to your file.
 const express = require('express');
 const xss = require('xss');
 const productsService = require('./products-service');
 
-const productsRouter = express.Router();
-const jsonParser = express.json();
+const productsRouter = express.Router();  //used when you want to create a new router object in your program to handle requests.
+const jsonParser = express.json();  //parses incoming requests with JSON payloads and is based on body-parser
 
 const productFormat = (product) => ({
   product_id: product.product_id,
@@ -22,14 +22,34 @@ productsRouter
     productsService
       .getAllProducts(req.app.get('db'))
       .then((product) => {
-        res.json(product.map(productFormat));
+        console.log(product)
+        let products=[];
+        for(let p of product){
+          let found = products.find(x => x.product_id === p.product_id)
+          if(!found){
+            let allRows = product.filter(x => x.product_id === p.product_id)
+           
+
+           
+            let newProduct = productFormat(p);
+            newProduct.days = {};
+
+            for(let row of allRows){
+
+              newProduct.days[row.week_day] = {morning: row.morning}
+            }
+            products.push(newProduct);
+          }
+          
+        }
+        res.json(products);
       })
       .catch(next);
   })
 
   .post(jsonParser, (req, res, next) => {
     //   spread/rest operator (created new variable named 'days' and stored in an object)
-    const { product_name, morning, ...days } = req.body;
+    const { product_name, morning, days } = req.body;
     const newProduct = { product_name };
     console.log(product_name, morning, days);
 
@@ -96,7 +116,7 @@ productsRouter
 
   .delete((req, res, next) => {
     productsService
-      .deleteProduct(req.app.get('db'), req.params.product_id)
+      .deleteProduct(req.app.get('db'), req.params.product_id)  //week_id needs to be deleted
       .then(() => {
         res.status(204).end();
       })
