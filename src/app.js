@@ -25,9 +25,6 @@ app.patch('/api/weekly-planner/:week_id', jsonParser, (req, res) => {
   const updatedInfo = req.body;
   const completedToUpdate = updatedInfo;
 
-  // console.log(updatedInfo);
-  // console.log(req.params.week_id);
-
   productsService
     .updateCompleted(req.app.get('db'), req.params.week_id, completedToUpdate)
     .then((numRowsAffected) => {
@@ -35,6 +32,7 @@ app.patch('/api/weekly-planner/:week_id', jsonParser, (req, res) => {
     })
     .catch();
 });
+
 
 app.get('/', (req, res) => {
   res.send('Hello, Happy Skin Planner user!');

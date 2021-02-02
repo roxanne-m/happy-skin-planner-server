@@ -5,13 +5,15 @@ const knex = require('knex');
 const supertest = require('supertest');
 const { post } = require('../src/app');
 const app = require('../src/app');
-const { makeProductsArray } = require('./products.fixtures');
+const {
+  makeProductsArray,
+  makeWeekDayUseArray,
+} = require('./products.fixtures');
 
 describe('Products Endpoints', function () {
   let db;
 
   before('make knex instance', () => {
-    console.log('database', process.env.TEST_DATABASE_URL)
     db = knex({
       client: 'pg',
       connection: process.env.TEST_DATABASE_URL,
@@ -20,24 +22,34 @@ describe('Products Endpoints', function () {
   });
 
   after('disconnect from db', () => db.destroy());
-// move clean the table to beforeEach line 25
+  // move clean the table to beforeEach line 25
   before('clean the table', () =>
     db.raw('TRUNCATE product, week_day_use RESTART IDENTITY CASCADE')
   );
 
-  afterEach('cleanup',() => db.raw('TRUNCATE product, week_day_use RESTART IDENTITY CASCADE'))
+  afterEach('cleanup', () =>
+    db.raw('TRUNCATE product, week_day_use RESTART IDENTITY CASCADE')
+  );
 
   context('Given there are products in the database', () => {
     const testProduct = makeProductsArray();
 
-    console.log('testProduct', testProduct)
     beforeEach('insert products', () => {
-      // db.raw('TRUNCATE product, week_day_use RESTART IDENTITY CASCADE')
       return db.into('product').insert(testProduct);
     });
 
     it('responds with 200 and all of the products', () => {
-      return supertest(app).get('/api/products').expect(200, testProduct);
+      return supertest(app)
+        .get('/api/products')
+        .expect(200)
+        .expect((res) => {
+          for (const i in res.body) {
+            let product = res.body[i];
+            expect(product).to.satisfy((product) =>
+              testProduct.find((p) => p.product_name === product.product_name)
+            );
+          }
+        });
     });
   });
 
@@ -52,33 +64,36 @@ describe('Products Endpoints', function () {
     });
 
     context('Given there are products in the database', () => {
-    
       const testProduct = makeProductsArray();
 
       beforeEach('insert products', () => {
-        // db.raw('TRUNCATE product, week_day_use RESTART IDENTITY CASCADE')
         return db.into('product').insert(testProduct);
       });
 
       it('GET /api/products/:product_id responds with 200 and the specified product', () => {
-        const productId = 103;
+        const productId = 3;
         const expectedProduct = testProduct[productId - 1];
 
         return supertest(app)
           .get(`/api/products/${productId}`)
-          .expect(200, expectedProduct);
+          .expect(200)
+          .expect((res) => {
+            return res.body.product_name === expectedProduct.product_name;
+          });
       });
     });
   });
-//////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
   describe('Post /api/products', () => {
     context('Given there are products in the database', () => {
       const testProduct = makeProductsArray();
 
       beforeEach('insert products', () => {
-        // db.raw('TRUNCATE product, week_day_use RESTART IDENTITY CASCADE')
-        db.into('product').insert(testProduct).returning('*').then((data) => console.log( 'after inserting data', data));
-        return db.into('product').insert(testProduct);
+        db.into('product')
+          .insert(testProduct)
+          .returning('*')
+          .then((data) => console.log('after inserting data', data));
+        // return db.into('product').insert(testProduct);
       });
 
       it('creates a product, responding with 201 and the new product', function () {
@@ -102,13 +117,10 @@ describe('Products Endpoints', function () {
           });
       });
 
-      const requiredFields = ['product_name', 'day', 'morning', 'completed'];
+      const requiredFields = ['product_name'];
       requiredFields.forEach((field) => {
         const newProduct = {
           product_name: 'Test new product',
-          day: 'monday',
-          morning: true,
-          completed: true,
         };
 
         it(`responds with 400 and an error message when the '${field}' is missing`, () => {
@@ -118,7 +130,7 @@ describe('Products Endpoints', function () {
             .post('/api/products')
             .send(newProduct)
             .expect(400, {
-              error: { message: `Missing '${field}' is request body` },
+              error: { message: `Missing '${field}' in request body` },
             });
         });
       });
@@ -139,23 +151,40 @@ describe('Products Endpoints', function () {
       const testProduct = makeProductsArray();
 
       beforeEach('insert products', () => {
-        // db.raw('TRUNCATE product, week_day_use RESTART IDENTITY CASCADE')
-        return db.into('products').insert(testProduct);
+        return db.into('product').insert(testProduct);
       });
       it('responds with 204 and removes the product', () => {
-        const idToRemove = 102;
+        const idToRemove = 2;
+        let deletedProduct = testProduct.find(
+          (product) => product.id === idToRemove
+        );
         const expectedProducts = testProduct.filter(
           (product) => product.id !== idToRemove
         );
-        return (
-          supertest(app)
-            .delete(`/api/products/${idToRemove}`)
-            .send()
-            .expect(204)   //PROBLEM: RETURNS 404 NOT FOUND??????????///////////////////////
-            .then((res) =>
-              supertest(app).get(`/api/products`).expect(expectedProducts)
-            )
-        );
+        return supertest(app)
+          .delete(`/api/products/${idToRemove}`)
+          .send()
+          .expect(204)
+          .then((res) =>
+            supertest(app)
+              .get(`/api/products`)
+              .then((res) => {
+                // checks if each response from server exists in our testProducts array
+                for (const i in res.body) {
+                  expect(res.body[i]).to.satisfy(
+                    (p) =>
+                      testProduct.find((p2) => {
+                        return p.product_name === p2.product_name;
+                      }) !== undefined
+                  );
+                }
+
+                // checking if deleted product was actually deleted
+                expect(res.body).to.satisfy((products) => {
+                  return !products.find((p) => p.product_id === idToRemove);
+                });
+              })
+          );
       });
     });
   });
@@ -173,36 +202,40 @@ describe('Products Endpoints', function () {
     // //////////////////////////////////////////////////////////////////////
     context('Given there are products in the database', () => {
       const testProduct = makeProductsArray();
-     
 
       beforeEach('insert products', () => {
         // db.select('*').from('product').then((data) => console.log( 'before truncating data', data))
         // db.raw('TRUNCATE product, week_day_use RESTART IDENTITY CASCADE')
         // db.select('*').from('product').then((data) => console.log( 'after truncating data', data))
-         db.into('product').insert(testProduct).returning('*').then((data) => console.log( 'after inserting data', data));
-        return db.into('product').insert(testProduct)
-      })
+        db.into('product')
+          .insert(testProduct)
+          .returning('*')
+          .then((data) => console.log('after inserting data', data));
+        return db.into('product').insert(testProduct);
+      });
 
-      it('responds with 204 and update the article', () => {
+      it.only('responds with 204 and update the article', () => {
         const idToUpdate = 1;
         const updateProduct = {
-          product_name: 'updated product name'
-        }
+          product_name: 'updated product name',
+        };
 
         const expectedProduct = {
-          ...testProduct[idToUpdate - 1],
-          ...updateProduct
-        }
-        return supertest(app)
-        .patch(`/api/products/${idToUpdate}`)
-        .send(updateProduct)
-        // .expect(204)
-        .then(res =>
+          id: idToUpdate,
+          ...updateProduct,
+        }; console.log(expectedProduct)
+        return (
           supertest(app)
-          .get(`/api/products/${idToUpdate}`)
-          .expect(expectedProduct)
-          )
-      })
+            .patch(`/api/products/${idToUpdate}`)
+            .send(updateProduct)
+            .expect(204)
+            .then((res) =>
+              supertest(app)
+                .get(`/api/products/${idToUpdate}`)
+                .expect(expectedProduct)
+            )
+        );
+      });
     });
   });
 });

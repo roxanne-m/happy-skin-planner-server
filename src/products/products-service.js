@@ -4,7 +4,7 @@
 // We will put methods on this object that store our transactions.
 const productsService = {
   getAllProducts(knex) {
-    return knex.select('*').from('product').join('week_day_use', 'week_day_use.week_product', '=', 'product.product_id');
+    return knex.select('*').from('product').leftJoin('week_day_use', 'week_day_use.week_product', '=', 'product.product_id');
   },
 
   addProduct(knex, newProduct) {
@@ -35,10 +35,10 @@ const productsService = {
     return knex('product').where({ product_id }).delete();
   },
 
+
   updateCompleted(knex, week_id, updatedInfo) {
     return knex('week_day_use').where( 'week_id', week_id ).update(updatedInfo);
   },
-
 
 };
 

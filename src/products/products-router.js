@@ -22,18 +22,23 @@ productsRouter
     productsService
       .getAllProducts(req.app.get('db'))
       .then((product) => {
-        console.log('GET ENDPOINT', product);
         let products = [];
+
         for (let p of product) {
           let found = products.find((x) => x.product_id === p.product_id);
+
           if (!found) {
             let allRows = product.filter((x) => x.product_id === p.product_id);
 
             let newProduct = productFormat(p);
             newProduct.days = {};
 
-            for (let row of allRows) { 
-              newProduct.days[row.week_day] = { morning: row.morning, week_id: row.week_id, completed: row.completed  };
+            for (let row of allRows) {
+              newProduct.days[row.week_day] = {
+                morning: row.morning,
+                week_id: row.week_id,
+                completed: row.completed,
+              };
             }
             products.push(newProduct);
           }
@@ -47,18 +52,18 @@ productsRouter
     //  created new variable named 'days' and stored in an object
     const { product_name, morning, days } = req.body;
     const newProduct = { product_name };
-    // console.log(product_name, morning, days);
+   
 
-    if (newProduct === null) {
+    if (!product_name) {
       return res.status(400).json({
-        error: { message: `Missing 'product name' in request body` },
+        error: { message: `Missing 'product_name' in request body` },
       });
     }
 
     productsService
       .addProduct(req.app.get('db'), newProduct)
       .then((product) => {
-        // for loop surrounding 47 - 57 w/object only week_product & morning only & incorporate nested if statement that changes week_day
+        // for loop surrounding object only week_product & morning only & incorporate nested if statement that changes week_day
         // create array to store objects of week day use
         const daysToInsert = [];
         // for loop to iterate through the days passed in
@@ -117,62 +122,32 @@ productsRouter
         res.status(204).end();
       })
       .catch(next);
-  })
-
-  .patch(jsonParser, (req, res, next) => {
-    const updatedInfo = req.body;
-    const completedToUpdate =  updatedInfo;
-
-    const numberOfValues = Object.values(completedToUpdate).filter(Boolean)
-      .length;
-    if (numberOfValues === 0) {
-      return res.status(400).json({
-        error: { message: 'Something went wrong.' },
-      });
-    }
-   
-
-    productsService
-      .updateCompleted(req.app.get('db'), req.params.product_id, completedToUpdate)
-      .then((numRowsAffected) => {
-        res.status(204).end();
-      })
-      .catch(next);
   });
 
+
+/***** For future features that I want to incorporate into my app. User will be able to update product name *******/
+// .patch(jsonParser, (req, res, next) => {
+//   const updatedInfo = req.body;
+//   const completedToUpdate = updatedInfo;
+
+//   const numberOfValues = Object.values(completedToUpdate).filter(Boolean)
+//     .length;
+//   if (numberOfValues === 0) {
+//     return res.status(400).json({
+//       error: { message: 'Something went wrong.' },
+//     });
+//   }
+
+//   productsService
+//     .updateCompleted(
+//       req.app.get('db'),
+//       req.params.product_id,
+//       completedToUpdate
+//     )
+//     .then((numRowsAffected) => {
+//       res.status(204).end();
+//     })
+//     .catch(next);
+// })
+
 module.exports = productsRouter;
-
-// SAMPLE FORM
-// -- example product
-
-// -- m   t   w   t   f   s    s
-
-// -- morning evening
-
-// SAMPLE DATA FROM THE FORM
-
-// {
-//     "product_name": "Tatcha skin cream",
-//     "morning": "true",
-//     "monday": "true",
-//     "tuesday": "true",
-//     etc.
-// }
-
-// add product into products table bc we need id before insert it into how its used
-// return id once inserted
-// create record of all days checked and if checked create a record (loop to go through them)
-
-// SAMPLE DATA TO INSERT INTO DATABASE
-// {
-//   week_product: 1,
-//   week_day: monday,
-//   morning: true
-// },
-// {
-//   week_product: 1,
-//   week_day: tuesday,
-//   morning: true
-// }
-
-// each time iterated through loop, create an object like example and creating a unique record to insert into the week_day table
