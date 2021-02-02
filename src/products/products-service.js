@@ -35,9 +35,11 @@ const productsService = {
     return knex('product').where({ product_id }).delete();
   },
 
-  updateProduct(knex, product_id, newProductInfo) {
-    return knex('product').where({ product_id }).update(newProductInfo);
+  updateCompleted(knex, week_id, updatedInfo) {
+    return knex('week_day_use').where( 'week_id', week_id ).update(updatedInfo);
   },
+
+
 };
 
 module.exports = productsService;

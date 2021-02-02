@@ -5,8 +5,8 @@ const express = require('express');
 const xss = require('xss');
 const productsService = require('./products-service');
 
-const productsRouter = express.Router();  //used when you want to create a new router object in your program to handle requests.
-const jsonParser = express.json();  //parses incoming requests with JSON payloads and is based on body-parser
+const productsRouter = express.Router(); //used when you want to create a new router object in your program to handle requests.
+const jsonParser = express.json(); //parses incoming requests with JSON payloads and is based on body-parser
 
 const productFormat = (product) => ({
   product_id: product.product_id,
@@ -15,32 +15,28 @@ const productFormat = (product) => ({
 });
 
 // TODO: when authentication is ready, use a real id instead of 1
-// TODO:
+
 productsRouter
   .route('/')
   .get((req, res, next) => {
     productsService
       .getAllProducts(req.app.get('db'))
       .then((product) => {
-        console.log(product)
-        let products=[];
-        for(let p of product){
-          let found = products.find(x => x.product_id === p.product_id)
-          if(!found){
-            let allRows = product.filter(x => x.product_id === p.product_id)
-           
+        console.log('GET ENDPOINT', product);
+        let products = [];
+        for (let p of product) {
+          let found = products.find((x) => x.product_id === p.product_id);
+          if (!found) {
+            let allRows = product.filter((x) => x.product_id === p.product_id);
 
-           
             let newProduct = productFormat(p);
             newProduct.days = {};
 
-            for(let row of allRows){
-
-              newProduct.days[row.week_day] = {morning: row.morning}
+            for (let row of allRows) { 
+              newProduct.days[row.week_day] = { morning: row.morning, week_id: row.week_id, completed: row.completed  };
             }
             products.push(newProduct);
           }
-          
         }
         res.json(products);
       })
@@ -48,10 +44,10 @@ productsRouter
   })
 
   .post(jsonParser, (req, res, next) => {
-    //   spread/rest operator (created new variable named 'days' and stored in an object)
+    //  created new variable named 'days' and stored in an object
     const { product_name, morning, days } = req.body;
     const newProduct = { product_name };
-    console.log(product_name, morning, days);
+    // console.log(product_name, morning, days);
 
     if (newProduct === null) {
       return res.status(400).json({
@@ -116,7 +112,7 @@ productsRouter
 
   .delete((req, res, next) => {
     productsService
-      .deleteProduct(req.app.get('db'), req.params.product_id)  //week_id needs to be deleted
+      .deleteProduct(req.app.get('db'), req.params.product_id)
       .then(() => {
         res.status(204).end();
       })
@@ -124,19 +120,20 @@ productsRouter
   })
 
   .patch(jsonParser, (req, res, next) => {
-    const { product_name } = req.body;
-    const productToUpdate = { product_name };
+    const updatedInfo = req.body;
+    const completedToUpdate =  updatedInfo;
 
-    const numberOfValues = Object.values(productToUpdate).filter(Boolean)
+    const numberOfValues = Object.values(completedToUpdate).filter(Boolean)
       .length;
     if (numberOfValues === 0) {
       return res.status(400).json({
-        error: { message: `Request body must contain a 'product name'` },
+        error: { message: 'Something went wrong.' },
       });
     }
+   
 
     productsService
-      .updateProduct(req.app.get('db'), req.params.product_id, productToUpdate)
+      .updateCompleted(req.app.get('db'), req.params.product_id, completedToUpdate)
       .then((numRowsAffected) => {
         res.status(204).end();
       })
