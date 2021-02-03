@@ -23,6 +23,7 @@ app.use('/api/products', productsRouter);
 // made a new route for updating week use
 app.patch('/api/weekly-planner/:week_id', jsonParser, (req, res) => {
   const updatedInfo = req.body;
+  console.log(updatedInfo, 'UPDATED INFO');
   const completedToUpdate = updatedInfo;
 
   productsService

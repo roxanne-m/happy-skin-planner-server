@@ -5,6 +5,7 @@ const knex = require('knex');
 const supertest = require('supertest');
 const { post } = require('../src/app');
 const app = require('../src/app');
+const { updateCompleted } = require('../src/products/products-service');
 const {
   makeProductsArray,
   makeWeekDayUseArray,
@@ -189,52 +190,52 @@ describe('Products Endpoints', function () {
     });
   });
 
-  describe(`PATCH /api/products/:product_id`, () => {
-    context(`Given no products`, () => {
-      it(`responds with 404`, () => {
-        const productId = 1234567;
-        return supertest(app)
-          .delete(`/api/products/${productId}`)
-          .expect(404, { error: { message: `Product doesn't exist` } });
-      });
-    });
-
-    // //////////////////////////////////////////////////////////////////////
+  describe(`PATCH /api/weekly-planner/:week_id`, () => {
     context('Given there are products in the database', () => {
-      const testProduct = makeProductsArray();
+      const testCompleted = makeWeekDayUseArray();
 
       beforeEach('insert products', () => {
-        // db.select('*').from('product').then((data) => console.log( 'before truncating data', data))
-        // db.raw('TRUNCATE product, week_day_use RESTART IDENTITY CASCADE')
-        // db.select('*').from('product').then((data) => console.log( 'after truncating data', data))
-        db.into('product')
-          .insert(testProduct)
-          .returning('*')
-          .then((data) => console.log('after inserting data', data));
-        return db.into('product').insert(testProduct);
+        db.into('week_day_use').insert(testCompleted).returning('*');
       });
 
-      it.only('responds with 204 and update the article', () => {
+      it.only('responds with 204 and update the completed product', () => {
         const idToUpdate = 1;
         const updateProduct = {
-          product_name: 'updated product name',
+          completed: false,
         };
 
         const expectedProduct = {
           id: idToUpdate,
-          ...updateProduct,
-        }; console.log(expectedProduct)
-        return (
-          supertest(app)
-            .patch(`/api/products/${idToUpdate}`)
-            .send(updateProduct)
-            .expect(204)
-            .then((res) =>
-              supertest(app)
-                .get(`/api/products/${idToUpdate}`)
-                .expect(expectedProduct)
-            )
-        );
+          updateProduct,
+        };
+        // console.log(expectedProduct);
+        return supertest(app)
+          .patch(`/api/products/${idToUpdate}`)
+          .send(updateProduct)
+          .expect(204)
+          .get(`/api/weekly-planner/${idToUpdate}`)
+          .then(
+            (res) =>
+              expect(res.body).to.satisfy(
+                (c) =>
+                  expectedProduct.find((c2) => {
+                    return c.completed === c2.completed;
+                  }) !== undefined
+              )
+
+            // .expect(expectedProduct)
+          );
+
+        // .then((res) => {
+        //   // checks if each response from server exists in our testProducts array
+        //   for (const i in res.body) {
+        //     expect(res.body[i]).to.satisfy(
+        //       (p) =>
+        //         testProduct.find((p2) => {
+        //           return p.product_name === p2.product_name;
+        //         }) !== undefined
+        //     );
+        //   }
       });
     });
   });
