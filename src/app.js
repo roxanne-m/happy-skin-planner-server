@@ -23,13 +23,22 @@ app.use('/api/products', productsRouter);
 // made a new route for updating week use
 app.patch('/api/weekly-planner/:week_id', jsonParser, (req, res) => {
   const updatedInfo = req.body;
-  console.log(updatedInfo, 'UPDATED INFO');
   const completedToUpdate = updatedInfo;
 
   productsService
     .updateCompleted(req.app.get('db'), req.params.week_id, completedToUpdate)
     .then((numRowsAffected) => {
       res.status(204).end();
+    })
+    .catch();
+});
+
+app.get('/api/weekly-planner/:week_id', (req, res) => {
+  productsService
+    .getWeekDayUse(req.app.get('db'), req.params.week_id)
+    .then((data) => {
+      console.log(data, 'SERVER DATA');
+      res.status(200).json(data);
     })
     .catch();
 });

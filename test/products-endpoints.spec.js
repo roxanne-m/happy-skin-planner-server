@@ -92,9 +92,7 @@ describe('Products Endpoints', function () {
       beforeEach('insert products', () => {
         db.into('product')
           .insert(testProduct)
-          .returning('*')
-          .then((data) => console.log('after inserting data', data));
-        // return db.into('product').insert(testProduct);
+          .returning('*')      
       });
 
       it('creates a product, responding with 201 and the new product', function () {
@@ -193,12 +191,18 @@ describe('Products Endpoints', function () {
   describe(`PATCH /api/weekly-planner/:week_id`, () => {
     context('Given there are products in the database', () => {
       const testCompleted = makeWeekDayUseArray();
+      const testProduct = makeProductsArray();
 
       beforeEach('insert products', () => {
-        db.into('week_day_use').insert(testCompleted).returning('*');
+        return db
+          .into('product')
+          .insert(testProduct)
+          .then((res) => {
+            return db.into('week_day_use').insert(testCompleted).returning('*');
+          });
       });
 
-      it.only('responds with 204 and update the completed product', () => {
+      it('responds with 204 and update the completed product', () => {
         const idToUpdate = 1;
         const updateProduct = {
           completed: false,
@@ -206,36 +210,19 @@ describe('Products Endpoints', function () {
 
         const expectedProduct = {
           id: idToUpdate,
-          updateProduct,
+          ...updateProduct,
         };
-        // console.log(expectedProduct);
         return supertest(app)
-          .patch(`/api/products/${idToUpdate}`)
+          .patch(`/api/weekly-planner/${idToUpdate}`)
           .send(updateProduct)
           .expect(204)
-          .get(`/api/weekly-planner/${idToUpdate}`)
-          .then(
-            (res) =>
-              expect(res.body).to.satisfy(
-                (c) =>
-                  expectedProduct.find((c2) => {
-                    return c.completed === c2.completed;
-                  }) !== undefined
-              )
-
-            // .expect(expectedProduct)
-          );
-
-        // .then((res) => {
-        //   // checks if each response from server exists in our testProducts array
-        //   for (const i in res.body) {
-        //     expect(res.body[i]).to.satisfy(
-        //       (p) =>
-        //         testProduct.find((p2) => {
-        //           return p.product_name === p2.product_name;
-        //         }) !== undefined
-        //     );
-        //   }
+          .then(() => {
+            supertest(app)
+              .get(`/api/weekly-planner/${idToUpdate}`)
+              .then((res) => {
+                expect(res.body).to.equal(expectedProduct);
+              })
+          });
       });
     });
   });
