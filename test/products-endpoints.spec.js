@@ -223,7 +223,7 @@ describe('Products Endpoints', function () {
         const expectedProduct = {
           id: idToUpdate,
           ...updateProduct,
-        }; console.log(expectedProduct)
+        }; 
         return (
           supertest(app)
             .patch(`/api/products/${idToUpdate}`)
