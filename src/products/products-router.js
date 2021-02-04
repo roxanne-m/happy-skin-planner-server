@@ -111,7 +111,7 @@ productsRouter
       .catch(next);
   })
 
-  .get((req, res, next) => {
+  .get((req, res) => {
     res.json(productFormat(res.product));
   })
 

@@ -40,6 +40,10 @@ const productsService = {
     return knex('week_day_use').where( 'week_id', week_id ).update(updatedInfo);
   },
 
+  getWeekDayUse(knex, week_id){
+    return knex('week_day_use').select('*').where('week_id', parseInt(week_id)).first();
+  }
+
 };
 
 module.exports = productsService;
