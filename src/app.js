@@ -37,7 +37,6 @@ app.get('/api/weekly-planner/:week_id', (req, res) => {
   productsService
     .getWeekDayUse(req.app.get('db'), req.params.week_id)
     .then((data) => {
-      console.log(data, 'SERVER DATA');
       res.status(200).json(data);
     })
     .catch();
