@@ -7,6 +7,7 @@ the button to mark as incomplete. User may also delete specific products that wo
 
 Link to front-end client built using React.
 
+![hsp](https://user-images.githubusercontent.com/70825798/106854351-015a5680-6670-11eb-817c-812d49361386.JPG)
 
 ## Available Scripts
 
